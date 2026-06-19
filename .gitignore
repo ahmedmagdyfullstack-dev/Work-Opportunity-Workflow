@@ -6,4 +6,5 @@ coverage/
 *.sqlite-shm
 *.sqlite-wal
 data/
+work/
 work/npm-cache

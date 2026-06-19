@@ -15,7 +15,7 @@ The complete pipeline is implemented:
 1. Search, Gmail, Outlook, and manual-import ingestion.
 2. Normalization into `OpportunitySignal`.
 3. Multi-level deduplication and company/role entity matching.
-4. Ahmed-specific scoring and optional OpenAI Structured Outputs classification.
+4. Ahmed-specific scoring with deterministic rules, OpenAI, or OpenRouter.
 5. Suggested LinkedIn DMs and email replies.
 6. Immediate WhatsApp decisions, daily digest decisions, and delivery logging.
 7. Opportunity, signal, reply, notification, feedback, settings, and dashboard APIs.
@@ -84,7 +84,24 @@ Run migrations before starting. Keep secrets in the deployment platform’s secr
 
 ## AI
 
-The default `AI_MODE=rules` is deterministic and testable. For model classification:
+The default `AI_MODE=rules` is deterministic and testable.
+
+For the free OpenRouter model:
+
+```env
+AI_MODE=openrouter
+OPENROUTER_API_KEY=...
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+AI_MODEL=openai/gpt-oss-20b:free
+```
+
+OpenRouter uses Chat Completions in JSON mode with the full schema embedded in
+the system prompt, reasoning set to low, and strict local Zod validation. This
+works across free-model providers that do not consistently enforce native JSON
+Schema. If the provider is unavailable, rate-limited, or returns invalid
+output, classification safely falls back to deterministic rules.
+
+Direct OpenAI is still supported:
 
 ```env
 AI_MODE=openai
@@ -92,7 +109,7 @@ OPENAI_API_KEY=...
 AI_MODEL=gpt-5.5
 ```
 
-The implementation uses the Responses API with a Zod-backed Structured Output. If the API fails, classification safely falls back to deterministic rules.
+Never commit either API key. Add it as a secret in Railway.
 
 ## Public search
 

@@ -1,0 +1,162 @@
+import { ConfigService } from "@nestjs/config";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ClassificationService } from "../src/ai/classification.service";
+import type { ClassificationResult } from "../src/domain/types";
+
+const aiPayload = {
+  is_job_related: true,
+  is_relevant_to_ahmed: true,
+  category: "linkedin_job_post",
+  importance_score: 92,
+  priority: "high",
+  company_name: "Acme",
+  role_title: "Senior Backend Engineer",
+  location: "Remote",
+  requires_action: true,
+  deadline: null,
+  should_notify_now: true,
+  should_include_in_digest: false,
+  summary: "Strong remote backend role.",
+  reason: "Matches Node.js, TypeScript, and remote preferences.",
+  matched_skills: ["Node.js", "TypeScript"],
+  missing_info: [],
+  suggested_action: "Message the hiring manager.",
+  suggested_reply_needed: true,
+  confidence: 94
+};
+
+const fallback: ClassificationResult = {
+  isJobRelated: true,
+  isRelevantToAhmed: false,
+  importanceScore: 42,
+  priority: "low",
+  category: "generic_update",
+  companyName: null,
+  roleTitle: null,
+  location: null,
+  requiresAction: false,
+  deadline: null,
+  summary: "Rules fallback.",
+  reason: "Fallback",
+  matchedSkills: [],
+  missingInfo: [],
+  suggestedAction: "Store.",
+  suggestedReplyNeeded: false,
+  confidence: 80,
+  shouldNotifyNow: false,
+  shouldIncludeInDigest: false
+};
+
+describe("OpenRouter classification", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function service() {
+    const config = new ConfigService({
+      AI_MODE: "openrouter",
+      OPENROUTER_API_KEY: "test-key",
+      OPENROUTER_BASE_URL: "https://openrouter.test/api/v1",
+      AI_MODEL: "openai/gpt-oss-20b:free",
+      APP_BASE_URL: "https://workflow.example"
+    });
+    const rules = { classify: vi.fn(() => fallback) };
+    const profile = {
+      getFacts: vi.fn(async () => []),
+      promptSummary: vi.fn(async () => "skill: Node.js")
+    };
+    return {
+      classifier: new ClassificationService(
+        config,
+        rules as never,
+        profile as never
+      ),
+      rules
+    };
+  }
+
+  it("uses OpenRouter structured output and maps the result", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: JSON.stringify(aiPayload) } }],
+          usage: { cost: 0 }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    const { classifier, rules } = service();
+
+    const result = await classifier.classify({
+      source: "linkedin_public_search",
+      signalType: "linkedin_public_job_post",
+      title: "Senior Backend Engineer",
+      snippet: "Remote Node.js and TypeScript"
+    });
+
+    expect(result.importanceScore).toBe(92);
+    expect(result.companyName).toBe("Acme");
+    expect(rules.classify).not.toHaveBeenCalled();
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://openrouter.test/api/v1/chat/completions");
+    expect(options?.headers).toMatchObject({
+      Authorization: "Bearer test-key",
+      "HTTP-Referer": "https://workflow.example"
+    });
+    const body = JSON.parse(String(options?.body));
+    expect(body.model).toBe("openai/gpt-oss-20b:free");
+    expect(body.response_format.type).toBe("json_object");
+    expect(body.messages[0].content).toContain('"is_job_related"');
+    expect(body.messages[0].content).toContain('"additionalProperties":false');
+  });
+
+  it("falls back to rules when OpenRouter fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: "rate limited" } }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const { classifier, rules } = service();
+
+    const result = await classifier.classify({
+      source: "email",
+      signalType: "important_email",
+      subject: "Opportunity"
+    });
+
+    expect(result).toEqual(fallback);
+    expect(rules.classify).toHaveBeenCalledOnce();
+  });
+
+  it("enforces reply and notification policy after AI classification", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  ...aiPayload,
+                  importance_score: 85,
+                  suggested_reply_needed: false,
+                  should_notify_now: false
+                })
+              }
+            }
+          ]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    const { classifier } = service();
+
+    const result = await classifier.classify({
+      source: "linkedin_public_search",
+      signalType: "linkedin_public_job_post",
+      title: "Senior Backend Engineer"
+    });
+
+    expect(result.suggestedReplyNeeded).toBe(true);
+    expect(result.shouldNotifyNow).toBe(true);
+    expect(result.priority).toBe("high");
+  });
+});

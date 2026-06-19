@@ -13,8 +13,13 @@ export const envSchema = z.object({
   REDIS_URL: optionalUrl,
   QUEUE_MODE: z.enum(["inline", "bullmq"]).default("inline"),
   OPENAI_API_KEY: z.string().optional(),
-  AI_MODEL: z.string().default("gpt-5.5"),
-  AI_MODE: z.enum(["rules", "openai"]).default("rules"),
+  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_BASE_URL: z
+    .string()
+    .url()
+    .default("https://openrouter.ai/api/v1"),
+  AI_MODEL: z.string().default("openai/gpt-oss-20b:free"),
+  AI_MODE: z.enum(["rules", "openai", "openrouter"]).default("rules"),
   SEARCH_PROVIDER: z
     .enum(["manual", "brave", "serpapi", "google_custom_search"])
     .default("manual"),
