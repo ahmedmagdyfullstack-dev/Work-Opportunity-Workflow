@@ -1,0 +1,52 @@
+0 verbose cli /opt/homebrew/Cellar/node@22/22.22.2_2/bin/node /opt/homebrew/bin/npm
+1 info using npm@10.9.7
+2 info using node@v22.22.2
+3 silly config load:file:/opt/homebrew/Cellar/node@22/22.22.2_2/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/ahmedmagdy/Documents/Codex/2026-06-20/a/.npmrc
+5 silly config load:file:/Users/ahmedmagdy/.npmrc
+6 silly config load:file:/opt/homebrew/etc/npmrc
+7 verbose title npm outdated
+8 verbose argv "outdated" "--json" "--cache" "./work/npm-cache"
+9 verbose logfile logs-max:10 dir:/Users/ahmedmagdy/Documents/Codex/2026-06-20/a/work/npm-cache/_logs/2026-06-19T22_41_00_475Z-
+10 verbose logfile /Users/ahmedmagdy/Documents/Codex/2026-06-20/a/work/npm-cache/_logs/2026-06-19T22_41_00_475Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+13 http fetch GET 200 https://registry.npmjs.org/reflect-metadata 309ms (cache miss)
+14 http fetch GET 200 https://registry.npmjs.org/@nestjs%2fschedule 310ms (cache miss)
+15 http fetch GET 200 https://registry.npmjs.org/class-transformer 312ms (cache miss)
+16 http fetch GET 200 https://registry.npmjs.org/helmet 349ms (cache miss)
+17 http fetch GET 200 https://registry.npmjs.org/@mikro-orm%2fnestjs 395ms (cache miss)
+18 http fetch GET 200 https://registry.npmjs.org/class-validator 508ms (cache miss)
+19 http fetch GET 200 https://registry.npmjs.org/@eslint%2fjs 526ms (cache miss)
+20 http fetch GET 200 https://registry.npmjs.org/@types%2fexpress 555ms (cache miss)
+21 http fetch GET 200 https://registry.npmjs.org/googleapis 602ms (cache miss)
+22 http fetch GET 200 https://registry.npmjs.org/@nestjs%2fcore 632ms (cache miss)
+23 http fetch GET 200 https://registry.npmjs.org/openai 635ms (cache miss)
+24 http fetch GET 200 https://registry.npmjs.org/@nestjs%2fcli 657ms (cache miss)
+25 http fetch GET 200 https://registry.npmjs.org/@mikro-orm%2fsqlite 711ms (cache revalidated)
+26 http fetch GET 200 https://registry.npmjs.org/@nestjs%2fcommon 814ms (cache miss)
+27 http fetch GET 200 https://registry.npmjs.org/@nestjs%2fconfig 856ms (cache miss)
+28 http fetch GET 200 https://registry.npmjs.org/supertest 962ms (cache miss)
+29 http fetch GET 200 https://registry.npmjs.org/@nestjs%2fplatform-express 987ms (cache revalidated)
+30 http fetch GET 200 https://registry.npmjs.org/eslint-config-prettier 1048ms (cache miss)
+31 http fetch GET 200 https://registry.npmjs.org/@nestjs%2ftesting 1344ms (cache miss)
+32 http fetch GET 200 https://registry.npmjs.org/@vitest%2fcoverage-v8 1352ms (cache miss)
+33 http fetch GET 200 https://registry.npmjs.org/tsx 1360ms (cache miss)
+34 http fetch GET 200 https://registry.npmjs.org/eslint 1482ms (cache miss)
+35 http fetch GET 200 https://registry.npmjs.org/rxjs 1500ms (cache miss)
+36 http fetch GET 200 https://registry.npmjs.org/vitest 1505ms (cache miss)
+37 http fetch GET 200 https://registry.npmjs.org/zod 1542ms (cache miss)
+38 http fetch GET 200 https://registry.npmjs.org/typescript-eslint 1558ms (cache miss)
+39 http fetch GET 200 https://registry.npmjs.org/bullmq 1579ms (cache miss)
+40 http fetch GET 200 https://registry.npmjs.org/globals 1584ms (cache miss)
+41 http fetch GET 200 https://registry.npmjs.org/@types%2fnode 3359ms (cache miss)
+42 http fetch GET 200 https://registry.npmjs.org/typescript 3914ms (cache miss)
+43 http fetch GET 200 https://registry.npmjs.org/@mikro-orm%2fcore 4317ms (cache miss)
+44 http fetch GET 200 https://registry.npmjs.org/@mikro-orm%2fpostgresql 4446ms (cache miss)
+45 http fetch GET 200 https://registry.npmjs.org/@mikro-orm%2fmigrations 4805ms (cache miss)
+46 verbose cwd /Users/ahmedmagdy/Documents/Codex/2026-06-20/a
+47 verbose os Darwin 24.6.0
+48 verbose node v22.22.2
+49 verbose npm  v10.9.7
+50 verbose exit 1
+51 verbose code 1

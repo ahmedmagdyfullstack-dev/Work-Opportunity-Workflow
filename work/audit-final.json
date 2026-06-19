@@ -1,0 +1,234 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@mikro-orm/sqlite": {
+      "name": "@mikro-orm/sqlite",
+      "severity": "low",
+      "isDirect": true,
+      "via": [
+        "sqlite3"
+      ],
+      "effects": [],
+      "range": "5.1.3-dev.0 - 6.6.15",
+      "nodes": [
+        "node_modules/@mikro-orm/sqlite"
+      ],
+      "fixAvailable": {
+        "name": "@mikro-orm/sqlite",
+        "version": "7.1.4",
+        "isSemVerMajor": true
+      }
+    },
+    "@rushstack/node-core-library": {
+      "name": "@rushstack/node-core-library",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "ajv"
+      ],
+      "effects": [
+        "@rushstack/terminal"
+      ],
+      "range": "5.0.0 - 5.20.2",
+      "nodes": [
+        "node_modules/@rushstack/node-core-library"
+      ],
+      "fixAvailable": true
+    },
+    "@rushstack/terminal": {
+      "name": "@rushstack/terminal",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@rushstack/node-core-library"
+      ],
+      "effects": [
+        "@rushstack/ts-command-line"
+      ],
+      "range": "0.11.1 - 0.22.2",
+      "nodes": [
+        "node_modules/@rushstack/terminal"
+      ],
+      "fixAvailable": true
+    },
+    "@rushstack/ts-command-line": {
+      "name": "@rushstack/ts-command-line",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@rushstack/terminal"
+      ],
+      "effects": [],
+      "range": "4.21.1 - 5.3.2",
+      "nodes": [
+        "node_modules/@rushstack/ts-command-line"
+      ],
+      "fixAvailable": true
+    },
+    "@tootallnate/once": {
+      "name": "@tootallnate/once",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1119438,
+          "name": "@tootallnate/once",
+          "dependency": "@tootallnate/once",
+          "title": "@tootallnate/once vulnerable to Incorrect Control Flow Scoping",
+          "url": "https://github.com/advisories/GHSA-vpq2-c234-7xj6",
+          "severity": "low",
+          "cwe": [
+            "CWE-705"
+          ],
+          "cvss": {
+            "score": 3.3,
+            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L"
+          },
+          "range": "<2.0.1"
+        }
+      ],
+      "effects": [
+        "http-proxy-agent"
+      ],
+      "range": "<2.0.1",
+      "nodes": [
+        "node_modules/@tootallnate/once"
+      ],
+      "fixAvailable": {
+        "name": "@mikro-orm/sqlite",
+        "version": "7.1.4",
+        "isSemVerMajor": true
+      }
+    },
+    "ajv": {
+      "name": "ajv",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1113715,
+          "name": "ajv",
+          "dependency": "ajv",
+          "title": "ajv has ReDoS when using `$data` option",
+          "url": "https://github.com/advisories/GHSA-2g4f-4pwh-qvx6",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-400",
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=7.0.0-alpha.0 <8.18.0"
+        }
+      ],
+      "effects": [
+        "@rushstack/node-core-library"
+      ],
+      "range": "7.0.0-alpha.0 - 8.17.1",
+      "nodes": [
+        "node_modules/@rushstack/node-core-library/node_modules/ajv"
+      ],
+      "fixAvailable": true
+    },
+    "http-proxy-agent": {
+      "name": "http-proxy-agent",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tootallnate/once"
+      ],
+      "effects": [
+        "make-fetch-happen"
+      ],
+      "range": "4.0.1",
+      "nodes": [
+        "node_modules/http-proxy-agent"
+      ],
+      "fixAvailable": {
+        "name": "@mikro-orm/sqlite",
+        "version": "7.1.4",
+        "isSemVerMajor": true
+      }
+    },
+    "make-fetch-happen": {
+      "name": "make-fetch-happen",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "http-proxy-agent"
+      ],
+      "effects": [
+        "node-gyp"
+      ],
+      "range": "8.0.2 - 9.1.0",
+      "nodes": [
+        "node_modules/make-fetch-happen"
+      ],
+      "fixAvailable": {
+        "name": "@mikro-orm/sqlite",
+        "version": "7.1.4",
+        "isSemVerMajor": true
+      }
+    },
+    "node-gyp": {
+      "name": "node-gyp",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "make-fetch-happen"
+      ],
+      "effects": [
+        "sqlite3"
+      ],
+      "range": "8.0.0 - 8.4.1",
+      "nodes": [
+        "node_modules/node-gyp"
+      ],
+      "fixAvailable": {
+        "name": "@mikro-orm/sqlite",
+        "version": "7.1.4",
+        "isSemVerMajor": true
+      }
+    },
+    "sqlite3": {
+      "name": "sqlite3",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "node-gyp"
+      ],
+      "effects": [
+        "@mikro-orm/sqlite"
+      ],
+      "range": "5.0.3 - 5.1.7",
+      "nodes": [
+        "node_modules/sqlite3"
+      ],
+      "fixAvailable": {
+        "name": "@mikro-orm/sqlite",
+        "version": "7.1.4",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 6,
+      "moderate": 4,
+      "high": 0,
+      "critical": 0,
+      "total": 10
+    },
+    "dependencies": {
+      "prod": 339,
+      "dev": 435,
+      "optional": 178,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 860
+    }
+  }
+}
