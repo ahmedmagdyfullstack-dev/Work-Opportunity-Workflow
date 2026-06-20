@@ -144,6 +144,22 @@ curl -X POST http://localhost:3000/admin/search/run \
   -H 'x-api-key: change-me'
 ```
 
+LinkedIn discovery defaults to posts indexed within the last four days:
+
+```env
+LINKEDIN_POST_MAX_AGE_DAYS=4
+```
+
+Results are processed newest first. Indexed snippets indicating that the role
+was filled, closed, or is no longer accepting applications are excluded. Since
+the app does not fetch LinkedIn pages, open-role detection is necessarily based
+on search-index metadata and snippets.
+
+The manual search response reports `notified`, `digest`, `stored`, and
+`notificationFailed` counts. WhatsApp remains importance-gated by
+`NOTIFICATION_THRESHOLD`; discovering a post does not automatically mean it
+will trigger an immediate alert.
+
 ## Gmail push
 
 Configure Gmail OAuth and a Pub/Sub topic, then:

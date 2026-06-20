@@ -45,6 +45,7 @@ export const envSchema = z.object({
   WHATSAPP_DIGEST_TEMPLATE: z.string().default("job_search_digest"),
   NOTIFICATION_THRESHOLD: z.coerce.number().int().min(0).max(100).default(80),
   DIGEST_THRESHOLD: z.coerce.number().int().min(0).max(100).default(60),
+  LINKEDIN_POST_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(30).default(4),
   DIGEST_CRON: z.string().default("0 18 * * *"),
   SEARCH_CRON: z.string().default("0 * * * *")
 });

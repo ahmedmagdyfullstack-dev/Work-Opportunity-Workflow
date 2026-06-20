@@ -26,7 +26,9 @@ export class QueryBuilderService {
     for (const site of sites) {
       for (const role of roles) {
         for (let i = 0; i < 2; i += 1) {
-          queries.push(`${site} ${hiring[i]} ${role} ${stack[i]} ${work[i]}`);
+          queries.push(
+            `${site} ${hiring[i]} ${role} ${stack[i]} ${work[i]} -filled -"applications closed" -"no longer accepting"`
+          );
         }
       }
     }

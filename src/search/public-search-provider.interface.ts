@@ -1,6 +1,10 @@
 import type { SearchResult } from "../domain/types";
 
-export type SearchOptions = { limit?: number; freshness?: string };
+export type SearchOptions = {
+  limit?: number;
+  freshness?: string;
+  maxAgeDays?: number;
+};
 
 export interface PublicSearchProvider {
   readonly name: string;

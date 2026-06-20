@@ -85,6 +85,7 @@ export type SearchResult = {
   url: string;
   displayUrl?: string;
   discoveredAt: Date;
+  publishedAt?: Date;
   provider: string;
   authorName?: string;
 };
