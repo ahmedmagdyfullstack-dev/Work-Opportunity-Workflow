@@ -82,7 +82,7 @@ export class SerperSearchProvider implements PublicSearchProvider {
         hl: "en",
         num: options.limit ?? 10,
         ...(options.maxAgeDays
-          ? { tbs: `qdr:d${options.maxAgeDays}` }
+          ? { tbs: `qdr:d${options.maxAgeDays},sbd:1` }
           : {})
       }),
       signal: AbortSignal.timeout(30_000)

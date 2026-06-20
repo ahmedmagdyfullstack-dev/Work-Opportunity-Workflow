@@ -56,6 +56,7 @@ export class PublicPostSearchWorker implements OnModuleInit {
     digest: number;
     stored: number;
     notificationFailed: number;
+    queryFailed: number;
   }> {
     const queries = this.queries.build();
     let found = 0;
@@ -68,6 +69,7 @@ export class PublicPostSearchWorker implements OnModuleInit {
     let digest = 0;
     let stored = 0;
     let notificationFailed = 0;
+    let queryFailed = 0;
     for (const query of queries) {
       try {
         const result = (await this.queue.enqueue("search-discovery", {
@@ -98,6 +100,7 @@ export class PublicPostSearchWorker implements OnModuleInit {
         stored += result?.stored ?? 0;
         notificationFailed += result?.notificationFailed ?? 0;
       } catch (error) {
+        queryFailed += 1;
         this.logger.error(`Search query failed: ${query}`, error);
       }
     }
@@ -112,7 +115,8 @@ export class PublicPostSearchWorker implements OnModuleInit {
       notified,
       digest,
       stored,
-      notificationFailed
+      notificationFailed,
+      queryFailed
     };
   }
 
