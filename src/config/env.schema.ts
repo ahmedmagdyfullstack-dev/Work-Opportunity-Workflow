@@ -20,6 +20,7 @@ export const envSchema = z.object({
     .default("https://openrouter.ai/api/v1"),
   OPENROUTER_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(120_000).default(25_000),
   AI_MODEL: z.string().default("openai/gpt-oss-20b:free"),
+  AI_REASONING_EFFORT: z.enum(["none", "low", "medium", "high", "xhigh"]).optional(),
   AI_MODE: z.enum(["rules", "openai", "openrouter"]).default("rules"),
   SEARCH_PROVIDER: z
     .enum(["manual", "brave", "serper", "serpapi", "google_custom_search"])

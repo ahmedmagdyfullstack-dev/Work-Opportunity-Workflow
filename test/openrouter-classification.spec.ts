@@ -73,6 +73,24 @@ describe("OpenRouter classification", () => {
     };
   }
 
+  function glmService() {
+    const config = new ConfigService({
+      AI_MODE: "openrouter",
+      OPENROUTER_API_KEY: "test-key",
+      OPENROUTER_BASE_URL: "https://openrouter.test/api/v1",
+      AI_MODEL: "z-ai/glm-5.2",
+      APP_BASE_URL: "https://workflow.example"
+    });
+    return new ClassificationService(
+      config,
+      { classify: vi.fn(() => fallback) } as never,
+      {
+        getFacts: vi.fn(async () => []),
+        promptSummary: vi.fn(async () => "skill: Node.js")
+      } as never
+    );
+  }
+
   it("uses OpenRouter structured output and maps the result", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -189,5 +207,26 @@ describe("OpenRouter classification", () => {
 
     expect(result.importanceScore).toBe(92);
     expect(rules.classify).not.toHaveBeenCalled();
+  });
+
+  it("uses GLM 5.2 with its supported high reasoning effort", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: JSON.stringify(aiPayload) } }]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    await glmService().classify({
+      source: "email",
+      signalType: "important_email",
+      subject: "Backend opportunity"
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body.model).toBe("z-ai/glm-5.2");
+    expect(body.reasoning).toEqual({ effort: "high", exclude: true });
   });
 });

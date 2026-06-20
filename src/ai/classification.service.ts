@@ -96,10 +96,13 @@ export class ClassificationService {
           "X-OpenRouter-Title": "Work Opportunity Workflow"
         },
         body: JSON.stringify({
-          model: this.config.get("AI_MODEL", "openai/gpt-oss-20b:free"),
+          model: this.openRouterModel(),
           messages: await this.openRouterMessages(input),
           response_format: { type: "json_object" },
-          reasoning: { effort: "none", exclude: true },
+          reasoning: {
+            effort: this.openRouterReasoningEffort(),
+            exclude: true
+          },
           temperature: 0,
           seed: 1,
           max_tokens: 1_200,
@@ -206,6 +209,23 @@ Include normal LinkedIn job posts, LinkedIn message notifications, and important
       }
       throw new Error("OpenRouter returned malformed JSON");
     }
+  }
+
+  private openRouterModel(): string {
+    return this.config.get("AI_MODEL", "openai/gpt-oss-20b:free");
+  }
+
+  private openRouterReasoningEffort():
+    | "none"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh" {
+    const configured = this.config.get<
+      "none" | "low" | "medium" | "high" | "xhigh"
+    >("AI_REASONING_EFFORT");
+    if (configured) return configured;
+    return this.openRouterModel() === "z-ai/glm-5.2" ? "high" : "none";
   }
 
   private errorMessage(error: unknown): string {

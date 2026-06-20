@@ -109,6 +109,7 @@ OPENROUTER_API_KEY=...
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_TIMEOUT_MS=25000
 AI_MODEL=openai/gpt-oss-20b:free
+AI_REASONING_EFFORT=none
 ```
 
 OpenRouter uses Chat Completions in JSON mode with a compact output contract,
@@ -116,6 +117,18 @@ reasoning disabled, and strict local Zod validation. The request has a bounded
 timeout because free providers can be slow or intermittently unavailable. If
 the provider is unavailable, rate-limited, times out, or returns invalid
 output, classification safely falls back to deterministic rules.
+
+For the paid GLM 5.2 model:
+
+```env
+AI_MODE=openrouter
+AI_MODEL=z-ai/glm-5.2
+AI_REASONING_EFFORT=high
+OPENROUTER_TIMEOUT_MS=60000
+```
+
+GLM 5.2 is not a free model. Check current OpenRouter pricing and fund the
+account before enabling it.
 
 Direct OpenAI is still supported:
 
