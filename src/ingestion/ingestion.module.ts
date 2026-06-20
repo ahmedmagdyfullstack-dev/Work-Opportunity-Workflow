@@ -7,6 +7,7 @@ import { OpportunitiesModule } from "../opportunities/opportunities.module";
 import { SearchModule } from "../search/search.module";
 import { GmailWatchController } from "./gmail-watch.controller";
 import { IngestionController } from "./ingestion.controller";
+import { LinkedInPostScraperService } from "./linkedin-post-scraper.service";
 import { PublicPostSearchWorker } from "./public-post-search.worker";
 
 @Module({
@@ -16,6 +17,7 @@ import { PublicPostSearchWorker } from "./public-post-search.worker";
     EmailParserService,
     GmailService,
     OutlookService,
+    LinkedInPostScraperService,
     PublicPostSearchWorker
   ],
   exports: [EmailParserService, PublicPostSearchWorker]

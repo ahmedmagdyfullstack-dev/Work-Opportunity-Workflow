@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 const optionalUrl = z.string().url().optional().or(z.literal(""));
+const envBoolean = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true")
+  .or(z.boolean());
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -49,6 +53,9 @@ export const envSchema = z.object({
   NOTIFICATION_THRESHOLD: z.coerce.number().int().min(0).max(100).default(80),
   DIGEST_THRESHOLD: z.coerce.number().int().min(0).max(100).default(60),
   LINKEDIN_POST_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(30).default(4),
+  LINKEDIN_SCRAPE_ENABLED: envBoolean.default(false),
+  LINKEDIN_SCRAPE_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(30_000).default(10_000),
+  LINKEDIN_SCRAPE_MAX_BYTES: z.coerce.number().int().min(100_000).max(5_000_000).default(1_500_000),
   DIGEST_CRON: z.string().default("0 18 * * *"),
   SEARCH_CRON: z.string().default("0 2,8,14,20 * * *")
 });

@@ -17,6 +17,7 @@ import { OpportunityService } from "../opportunities/opportunity.service";
 import { QueueService } from "../jobs/queue.service";
 import { SearchCacheService } from "../search/search-cache.service";
 import { ConfigService } from "@nestjs/config";
+import { LinkedInPostScraperService } from "./linkedin-post-scraper.service";
 
 @Injectable()
 export class PublicPostSearchWorker implements OnModuleInit {
@@ -30,7 +31,8 @@ export class PublicPostSearchWorker implements OnModuleInit {
     private readonly queue: QueueService,
     private readonly cache: SearchCacheService,
     private readonly orm: MikroORM,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
+    private readonly scraper: LinkedInPostScraperService
   ) {}
 
   onModuleInit(): void {
@@ -158,13 +160,15 @@ export class PublicPostSearchWorker implements OnModuleInit {
     const linkedInResults = results.filter((result) =>
       isLinkedInPostUrl(result.url)
     );
-    const stale = linkedInResults.filter(
+    let stale = linkedInResults.filter(
       (result) => result.publishedAt && result.publishedAt.getTime() < cutoff
     ).length;
     const recentResults = linkedInResults.filter(
       (result) => !result.publishedAt || result.publishedAt.getTime() >= cutoff
     );
-    const closed = recentResults.filter((result) => !isLikelyOpenPost(result)).length;
+    let closed = recentResults.filter(
+      (result) => !isLikelyOpenPost(result)
+    ).length;
     const openResults = recentResults
       .filter(isLikelyOpenPost)
       .sort(
@@ -181,21 +185,47 @@ export class PublicPostSearchWorker implements OnModuleInit {
     let digest = 0;
     let stored = 0;
     let notificationFailed = 0;
+    let scrapeStale = 0;
+    let scrapeClosed = 0;
     for (const item of openResults) {
+      const scraped = await this.scraper.enrich(item.url);
+      if (
+        scraped.publishedAt &&
+        scraped.publishedAt.getTime() < cutoff
+      ) {
+        stale += 1;
+        scrapeStale += 1;
+        continue;
+      }
+      if (
+        scraped.bodyText &&
+        !isLikelyOpenPost({
+          ...item,
+          snippet: `${item.snippet} ${scraped.bodyText}`
+        })
+      ) {
+        closed += 1;
+        scrapeClosed += 1;
+        continue;
+      }
       const result = await this.opportunities.ingest({
         source: "linkedin_public_search",
         signalType: "linkedin_public_job_post",
-        title: item.title,
+        title: scraped.title ?? item.title,
         snippet: item.snippet,
+        bodyText: scraped.bodyText ?? undefined,
         url: item.url,
-        authorName: item.authorName,
+        authorName: scraped.authorName ?? item.authorName,
         rawPayload: {
           provider: item.provider,
           query,
           publishedAt: item.publishedAt?.toISOString() ?? null,
+          scrapedPublishedAt: scraped.publishedAt?.toISOString() ?? null,
+          scrapeStatus: scraped.status,
           maxAgeDays
         },
-        receivedAt: item.publishedAt ?? item.discoveredAt
+        receivedAt:
+          scraped.publishedAt ?? item.publishedAt ?? item.discoveredAt
       });
       if (result.duplicate) {
         duplicates += 1;
@@ -211,9 +241,13 @@ export class PublicPostSearchWorker implements OnModuleInit {
         stored += 1;
       }
     }
+    const open = openResults.length - scrapeStale - scrapeClosed;
+    this.logger.log(
+      `Search query ingested provider=${this.provider.name} open=${open} scrapedStale=${scrapeStale} scrapedClosed=${scrapeClosed} ingested=${ingested} duplicates=${duplicates}`
+    );
     return {
       found: linkedInResults.length,
-      open: openResults.length,
+      open,
       stale,
       closed,
       ingested,

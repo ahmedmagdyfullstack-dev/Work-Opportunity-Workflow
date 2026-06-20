@@ -6,7 +6,8 @@ A read-only job-search assistant that unifies:
 - LinkedIn message notification emails;
 - important recruiter, interview, assessment, offer, rejection, and calendar emails.
 
-It explicitly excludes LinkedIn job-alert emails, direct LinkedIn scraping, browser/session automation, auto-replies, and auto-applying.
+It explicitly excludes LinkedIn job-alert emails, authenticated LinkedIn
+scraping, browser/session automation, auto-replies, and auto-applying.
 
 ## What works
 
@@ -193,8 +194,21 @@ LINKEDIN_POST_MAX_AGE_DAYS=4
 
 Results are processed newest first. Indexed snippets indicating that the role
 was filled, closed, or is no longer accepting applications are excluded. Since
-the app does not fetch LinkedIn pages, open-role detection is necessarily based
-on search-index metadata and snippets.
+public LinkedIn pages are not consistently accessible, open-role detection
+falls back to search-index metadata and snippets when enrichment is blocked.
+
+Optional public post enrichment fetches unauthenticated LinkedIn HTML and reads
+`SocialMediaPosting` JSON-LD when available:
+
+```env
+LINKEDIN_SCRAPE_ENABLED=true
+LINKEDIN_SCRAPE_TIMEOUT_MS=10000
+LINKEDIN_SCRAPE_MAX_BYTES=1500000
+```
+
+It does not use LinkedIn credentials, cookies, browser automation, CAPTCHA
+bypass, or stealth/proxy evasion. Redirects to login/signup and unavailable
+pages safely fall back to the search snippet.
 
 The manual search response waits for BullMQ discovery jobs and reports
 `notified`, `digest`, `stored`, `notificationFailed`, and `queryFailed`
