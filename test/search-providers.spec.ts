@@ -113,7 +113,7 @@ describe("LinkedIn search freshness", () => {
     expect(JSON.parse(String(options?.body))).toMatchObject({
       q: "linkedin role",
       num: 10,
-      tbs: "qdr:d4,sbd:1"
+      tbs: "qdr:d4"
     });
     expect(results[0]).toMatchObject({
       provider: "serper",
