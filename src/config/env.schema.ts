@@ -50,6 +50,7 @@ export const envSchema = z.object({
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   WHATSAPP_ALERT_TEMPLATE: z.string().default("job_search_alert"),
   WHATSAPP_DIGEST_TEMPLATE: z.string().default("job_search_digest"),
+  WHATSAPP_TEMPLATE_LANGUAGE: z.string().default("en_US"),
   NOTIFICATION_THRESHOLD: z.coerce.number().int().min(0).max(100).default(80),
   DIGEST_THRESHOLD: z.coerce.number().int().min(0).max(100).default(60),
   LINKEDIN_POST_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(30).default(4),

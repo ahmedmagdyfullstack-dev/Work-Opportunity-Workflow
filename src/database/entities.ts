@@ -288,6 +288,13 @@ export class Notification {
   @Property({ type: JsonType, nullable: true })
   providerResponse?: Record<string, unknown>;
 
+  @Index()
+  @Property({ type: "string", nullable: true })
+  providerMessageId?: string;
+
+  @Property({ type: JsonType, nullable: true })
+  deliveryError?: Record<string, unknown>;
+
   @Property({ nullable: true, type: "timestamptz" })
   sentAt?: Date;
 

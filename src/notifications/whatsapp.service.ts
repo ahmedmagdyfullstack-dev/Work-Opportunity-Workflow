@@ -7,7 +7,33 @@ export class WhatsAppService {
 
   constructor(private readonly config: ConfigService) {}
 
-  async send(message: string): Promise<Record<string, unknown>> {
+  messageId(response?: Record<string, unknown>): string | undefined {
+    const messages = response?.messages;
+    if (!Array.isArray(messages)) return undefined;
+    const first = messages[0];
+    if (!first || typeof first !== "object") return undefined;
+    const id = (first as Record<string, unknown>).id;
+    return typeof id === "string" ? id : undefined;
+  }
+
+  sendAlert(message: string): Promise<Record<string, unknown>> {
+    return this.sendTemplate(
+      message,
+      this.config.get("WHATSAPP_ALERT_TEMPLATE", "job_search_alert")
+    );
+  }
+
+  sendDigest(message: string): Promise<Record<string, unknown>> {
+    return this.sendTemplate(
+      message,
+      this.config.get("WHATSAPP_DIGEST_TEMPLATE", "job_search_digest")
+    );
+  }
+
+  async sendTemplate(
+    message: string,
+    templateName: string
+  ): Promise<Record<string, unknown>> {
     if (this.config.get("WHATSAPP_PROVIDER", "log") === "log") {
       this.logger.log(`WhatsApp(log): ${message}`);
       return { provider: "log", accepted: true };
@@ -18,6 +44,28 @@ export class WhatsAppService {
     );
     const token = this.config.getOrThrow<string>("WHATSAPP_ACCESS_TOKEN");
     const to = this.config.getOrThrow<string>("WHATSAPP_TO_NUMBER");
+    const language = this.config.get("WHATSAPP_TEMPLATE_LANGUAGE", "en_US");
+    const template =
+      templateName === "hello_world"
+        ? {
+            name: templateName,
+            language: { code: language }
+          }
+        : {
+            name: templateName,
+            language: { code: language },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  {
+                    type: "text",
+                    text: message.slice(0, 950)
+                  }
+                ]
+              }
+            ]
+          };
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -33,8 +81,8 @@ export class WhatsAppService {
             body: JSON.stringify({
               messaging_product: "whatsapp",
               to,
-              type: "text",
-              text: { preview_url: true, body: message }
+              type: "template",
+              template
             })
           }
         );

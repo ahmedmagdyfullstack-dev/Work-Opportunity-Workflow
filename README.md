@@ -241,9 +241,26 @@ WHATSAPP_PHONE_NUMBER_ID=...
 WHATSAPP_ACCESS_TOKEN=...
 WHATSAPP_TO_NUMBER=...
 WHATSAPP_VERIFY_TOKEN=...
+WHATSAPP_ALERT_TEMPLATE=job_search_alert
+WHATSAPP_DIGEST_TEMPLATE=job_search_digest
+WHATSAPP_TEMPLATE_LANGUAGE=en_US
 ```
 
-The adapter retries transient failures three times and persists provider responses. For business-initiated production messages outside the service window, configure approved templates in Meta and adapt the payload to the approved alert/digest template names.
+The adapter sends approved templates, retries failures three times, stores the
+Meta message ID, and updates delivery state from the WhatsApp status webhook.
+Create the configured templates in Meta with one body text variable:
+
+```text
+Name: job_search_alert
+Language: English (US)
+Body:
+🚨 New job opportunity
+{{1}}
+```
+
+Create `job_search_digest` with the same single-variable structure for daily
+digests. Templates must be approved before they can be sent outside the
+24-hour customer-service window.
 
 ## Key endpoints
 

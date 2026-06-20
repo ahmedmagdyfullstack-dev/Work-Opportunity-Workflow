@@ -330,8 +330,13 @@ export class OpportunityService {
     });
     this.em.persist(notification);
     try {
-      notification.providerResponse = await this.whatsapp.send(message);
-      notification.status = "sent";
+      notification.providerResponse = await this.whatsapp.sendAlert(message);
+      notification.providerMessageId = this.whatsapp.messageId(
+        notification.providerResponse
+      );
+      notification.status = notification.providerMessageId
+        ? "accepted"
+        : "sent";
       notification.sentAt = new Date();
     } catch (error) {
       notification.status = "failed";

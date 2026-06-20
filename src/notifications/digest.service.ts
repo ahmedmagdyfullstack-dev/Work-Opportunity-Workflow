@@ -45,15 +45,17 @@ export class DigestService {
           `${index + 1}. ${item.roleTitle ?? "Opportunity"} — ${item.companyName ?? "Unknown"} (${item.importanceScore}/100)\n${item.summary}\nAction: ${item.suggestedAction}`
       )
     ].join("\n\n");
-    const response = await this.whatsapp.send(message);
+    const response = await this.whatsapp.sendDigest(message);
+    const providerMessageId = this.whatsapp.messageId(response);
     this.em.persist(
       this.em.create(Notification, {
         channel: "whatsapp",
         recipient: process.env.WHATSAPP_TO_NUMBER || "configured-recipient",
         messageText: message,
-        status: "sent",
+        status: providerMessageId ? "accepted" : "sent",
         sentAt: new Date(),
-        providerResponse: response
+        providerResponse: response,
+        providerMessageId
       })
     );
     await this.em.flush();
