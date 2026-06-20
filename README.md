@@ -80,7 +80,22 @@ QUEUE_MODE=bullmq
 REDIS_URL=redis://localhost:6379
 ```
 
-Run migrations before starting. Keep secrets in the deployment platform’s secret manager, not in `.env` committed to source.
+PostgreSQL migrations run automatically before the application starts serving
+requests. Keep secrets in the deployment platform’s secret manager, not in
+`.env` committed to source.
+
+## Railway
+
+The repository includes a multi-stage production `Dockerfile` and
+`railway.json`. Railway automatically uses them to:
+
+- install build tooling without leaking it into the runtime image;
+- build the NestJS application;
+- start with `npm run start`;
+- check `/health` for deployment readiness;
+- restart failed processes up to 10 times.
+
+Keep one replica while the API process owns scheduled search and digest jobs.
 
 ## AI
 

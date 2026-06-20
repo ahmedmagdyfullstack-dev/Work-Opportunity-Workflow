@@ -49,6 +49,11 @@ export class DatabaseModule implements OnApplicationBootstrap {
     const databaseType = process.env.DATABASE_TYPE ?? "sqlite";
     if (databaseType === "sqlite" && process.env.NODE_ENV !== "production") {
       await this.orm.getSchemaGenerator().updateSchema();
+      return;
+    }
+
+    if (databaseType === "postgres") {
+      await this.orm.getMigrator().up();
     }
   }
 }
