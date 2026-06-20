@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EntityManager } from "@mikro-orm/core";
 import { google, gmail_v1 } from "googleapis";
@@ -7,6 +7,8 @@ import type { ParsedEmail } from "../domain/types";
 
 @Injectable()
 export class GmailService {
+  private readonly logger = new Logger(GmailService.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly em: EntityManager
@@ -35,28 +37,55 @@ export class GmailService {
       if (historyId) await this.setCheckpoint("gmail.historyId", historyId);
       return [];
     }
-    const history = await gmail.users.history.list({
-      userId: "me",
-      startHistoryId,
-      historyTypes: ["messageAdded"]
-    });
+    let historyData: gmail_v1.Schema$ListHistoryResponse;
+    try {
+      const history = await gmail.users.history.list({
+        userId: "me",
+        startHistoryId,
+        historyTypes: ["messageAdded"]
+      });
+      historyData = history.data;
+    } catch (error) {
+      if (this.statusCode(error) === 404 && historyId) {
+        this.logger.warn(
+          "Gmail history checkpoint expired; advancing to the latest Pub/Sub history ID."
+        );
+        await this.setCheckpoint("gmail.historyId", historyId);
+        return [];
+      }
+      throw error;
+    }
     const ids = new Set(
-      (history.data.history ?? [])
+      (historyData.history ?? [])
         .flatMap((item) => item.messagesAdded ?? [])
         .map((item) => item.message?.id)
         .filter((id): id is string => Boolean(id))
     );
     const emails: ParsedEmail[] = [];
+    let missing = 0;
     for (const id of ids) {
-      const result = await gmail.users.messages.get({
-        userId: "me",
-        id,
-        format: "full"
-      });
-      emails.push(this.parseMessage(result.data));
+      try {
+        const result = await gmail.users.messages.get({
+          userId: "me",
+          id,
+          format: "full"
+        });
+        emails.push(this.parseMessage(result.data));
+      } catch (error) {
+        if (this.statusCode(error) === 404) {
+          missing += 1;
+          continue;
+        }
+        throw error;
+      }
     }
-    const next = history.data.historyId ?? historyId;
+    const next = historyData.historyId ?? historyId;
     if (next) await this.setCheckpoint("gmail.historyId", next);
+    if (missing > 0) {
+      this.logger.warn(
+        `Skipped ${missing} Gmail message(s) deleted or unavailable before processing.`
+      );
+    }
     return emails;
   }
 
@@ -131,5 +160,18 @@ export class GmailService {
       checkpoint.value = value;
     }
     await this.em.flush();
+  }
+
+  private statusCode(error: unknown): number | undefined {
+    if (!error || typeof error !== "object") return undefined;
+    const item = error as {
+      code?: unknown;
+      status?: unknown;
+      response?: { status?: unknown };
+    };
+    for (const value of [item.code, item.status, item.response?.status]) {
+      if (typeof value === "number") return value;
+    }
+    return undefined;
   }
 }

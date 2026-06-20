@@ -227,6 +227,10 @@ curl -X POST http://localhost:3000/admin/gmail/watch \
 
 Point the Pub/Sub push subscription to `POST /webhooks/gmail`. Set `GMAIL_WEBHOOK_TOKEN` and send it as `x-webhook-token` from your gateway/subscription. Renew Gmail `watch` at least every seven days.
 
+Messages deleted between Gmail history discovery and retrieval are skipped
+while the history checkpoint still advances, preventing Pub/Sub retry storms.
+Expired history checkpoints resynchronize to the latest notification ID.
+
 ## Outlook
 
 Point Microsoft Graph change notifications to `/webhooks/outlook` and set a strong `OUTLOOK_CLIENT_STATE`. Validation tokens are echoed by the GET endpoint. Notifications are rejected when `clientState` does not match.
