@@ -9,6 +9,7 @@ import type {
 import { classificationResultSchema } from "./classification.schema";
 import { CvProfileService } from "./cv-profile.service";
 import { RuleClassifierService } from "./rule-classifier.service";
+import { assessWorkEligibility } from "./work-eligibility";
 
 @Injectable()
 export class ClassificationService {
@@ -38,14 +39,20 @@ export class ClassificationService {
           ? await this.classifyWithOpenRouter(input)
           : await this.classifyWithOpenAI(input);
       return this.applySenderRules(
-        this.enforceProductPolicy(this.mapResult(parsed)),
+        this.enforceProductPolicy(
+          this.applyWorkEligibilityGuard(this.mapResult(parsed), input)
+        ),
         senderRules
       );
     } catch (error) {
       this.logger.warn(
         `${mode} classification unavailable; using deterministic rules: ${this.errorMessage(error)}`
       );
-      return this.applySenderRules(this.rules.classify(input), senderRules);
+      const fallback = this.rules.classify(input);
+      return this.applySenderRules(
+        this.suppressLinkedInPostWithoutAiReview(fallback),
+        senderRules
+      );
     }
   }
 
@@ -148,7 +155,7 @@ export class ClassificationService {
       {
         role: "system" as const,
         content:
-          "Classify job-search signals for Ahmed. LinkedIn normal job posts, LinkedIn message notification emails, and important recruiter/application emails are included. LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions are excluded. Prefer remote/B2B senior backend, full-stack, product, and AI roles. Return the requested structured JSON only."
+          "Classify job-search signals for Ahmed, an Egyptian based in Cairo. A LinkedIn job post is eligible only when it explicitly accepts Egypt/local work, or it explicitly combines independent-contractor/B2B/freelance/project-based engagement with worldwide, global, EMEA, MENA, or Egypt-inclusive geography. “Remote” alone is uncertain and must not be treated as eligible. US-only, UK-only, Canada-only, EU/Europe-only, country residency, local work authorization, W2-only, no-C2C, or hybrid/onsite outside Egypt are ineligible. Include normal LinkedIn job posts, LinkedIn message notification emails, and important recruiter/application emails. Exclude LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions. Return the requested structured JSON only."
       },
       {
         role: "user" as const,
@@ -184,8 +191,17 @@ missing_info:string[]
 suggested_action:string
 suggested_reply_needed:boolean
 confidence:integer 0-100
+work_eligibility: one of eligible, ineligible, uncertain
+eligibility_reason:string
+engagement_type:string|null
 
-Include normal LinkedIn job posts, LinkedIn message notifications, and important recruiter/application emails. Exclude LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions. Prefer remote/B2B senior backend, full-stack, product, and AI roles.`
+Ahmed is Egyptian and based in Cairo. For LinkedIn job posts:
+- eligible: explicitly accepts Egypt/local work; or explicitly offers independent contractor, B2B, freelance, outstaffing, or project-based engagement AND explicitly allows worldwide, global, EMEA, MENA, or Egypt.
+- uncertain: says only remote; geography may include Egypt but contractor engagement is not explicit; or contractor terms exist but Egypt-compatible geography is not explicit.
+- ineligible: US-only, UK-only, Canada-only, EU/Europe-only, country residency, local work authorization, W2-only, no-C2C, or hybrid/onsite outside Egypt.
+Never mark “remote” alone as eligible. Uncertain and ineligible posts must not notify or enter the digest.
+
+Include normal LinkedIn job posts, LinkedIn message notifications, and important recruiter/application emails. Exclude LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions. Prefer senior backend/full-stack/product roles matching Node.js, TypeScript, NestJS, React, PostgreSQL, Redis, AWS/GCP, distributed systems, and AI/RAG.`
       },
       {
         role: "user" as const,
@@ -249,6 +265,9 @@ Include normal LinkedIn job posts, LinkedIn message notifications, and important
       deadline: parsed.deadline,
       shouldNotifyNow: parsed.should_notify_now,
       shouldIncludeInDigest: parsed.should_include_in_digest,
+      workEligibility: parsed.work_eligibility,
+      eligibilityReason: parsed.eligibility_reason,
+      engagementType: parsed.engagement_type,
       summary: parsed.summary,
       reason: parsed.reason,
       matchedSkills: parsed.matched_skills,
@@ -256,6 +275,33 @@ Include normal LinkedIn job posts, LinkedIn message notifications, and important
       suggestedAction: parsed.suggested_action,
       suggestedReplyNeeded: parsed.suggested_reply_needed,
       confidence: parsed.confidence
+    };
+  }
+
+  private applyWorkEligibilityGuard(
+    result: ClassificationResult,
+    input: NormalizedSignalInput
+  ): ClassificationResult {
+    if (result.category !== "linkedin_job_post") return result;
+
+    const deterministic = assessWorkEligibility(input);
+    const rank = { eligible: 0, uncertain: 1, ineligible: 2 } as const;
+    const modelStatus = result.workEligibility ?? "uncertain";
+    const finalStatus =
+      rank[deterministic.status] >= rank[modelStatus]
+        ? deterministic.status
+        : modelStatus;
+    const reason =
+      finalStatus === deterministic.status
+        ? deterministic.reason
+        : result.eligibilityReason ?? deterministic.reason;
+
+    return {
+      ...result,
+      workEligibility: finalStatus,
+      eligibilityReason: reason,
+      engagementType:
+        deterministic.engagementType ?? result.engagementType ?? null
     };
   }
 
@@ -270,6 +316,33 @@ Include normal LinkedIn job posts, LinkedIn message notifications, and important
         shouldNotifyNow: false,
         shouldIncludeInDigest: false,
         suggestedReplyNeeded: false
+      };
+    }
+
+    if (
+      result.category === "linkedin_job_post" &&
+      result.workEligibility !== "eligible"
+    ) {
+      const eligibilityLabel =
+        result.workEligibility === "ineligible" ? "Ineligible" : "Unverified";
+      return {
+        ...result,
+        isRelevantToAhmed: false,
+        importanceScore: Math.min(result.importanceScore, 39),
+        priority: "ignore",
+        requiresAction: false,
+        shouldNotifyNow: false,
+        shouldIncludeInDigest: false,
+        suggestedReplyNeeded: false,
+        suggestedAction:
+          "Skip unless the author confirms Egypt-based contractor eligibility.",
+        reason: `${result.reason} ${eligibilityLabel} for an Egypt-based applicant: ${result.eligibilityReason ?? "location and engagement terms are not explicit."}`,
+        missingInfo: [
+          ...new Set([
+            ...result.missingInfo,
+            "Egypt/contractor eligibility"
+          ])
+        ]
       };
     }
 
@@ -305,6 +378,28 @@ Include normal LinkedIn job posts, LinkedIn message notifications, and important
     };
   }
 
+  private suppressLinkedInPostWithoutAiReview(
+    result: ClassificationResult
+  ): ClassificationResult {
+    if (result.category !== "linkedin_job_post") return result;
+
+    return {
+      ...result,
+      isRelevantToAhmed: false,
+      importanceScore: Math.min(result.importanceScore, 39),
+      priority: "ignore",
+      requiresAction: false,
+      shouldNotifyNow: false,
+      shouldIncludeInDigest: false,
+      suggestedReplyNeeded: false,
+      workEligibility: "uncertain",
+      eligibilityReason:
+        "The post was not approved because the configured AI reviewer was unavailable.",
+      suggestedAction: "Retry after the AI reviewer is available.",
+      reason: `${result.reason} AI eligibility review did not complete, so the post was suppressed.`
+    };
+  }
+
   private applySenderRules(
     result: ClassificationResult,
     rules: Array<{ key: string }>
@@ -318,7 +413,13 @@ Include normal LinkedIn job posts, LinkedIn message notifications, and important
         reason: `${result.reason} Sender is explicitly ignored.`
       };
     }
-    if (rules.some((rule) => rule.key === "always_notify")) {
+    if (
+      rules.some((rule) => rule.key === "always_notify") &&
+      !(
+        result.category === "linkedin_job_post" &&
+        result.workEligibility !== "eligible"
+      )
+    ) {
       return {
         ...result,
         priority: "high",

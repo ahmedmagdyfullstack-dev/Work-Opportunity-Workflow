@@ -15,6 +15,12 @@ export class DecisionEngineService {
     classification: ClassificationResult
   ): Decision {
     if (classification.category === "noise") return "ignore";
+    if (
+      classification.category === "linkedin_job_post" &&
+      classification.workEligibility !== "eligible"
+    ) {
+      return "ignore";
+    }
     const text = `${signal.subject ?? ""} ${signal.bodyText ?? ""}`.toLowerCase();
     if (signal.source === "linkedin_email" && text.includes("job alert")) {
       return "ignore";

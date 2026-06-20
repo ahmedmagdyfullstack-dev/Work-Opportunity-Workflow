@@ -4,6 +4,7 @@ import type {
   ClassificationResult,
   NormalizedSignalInput
 } from "../domain/types";
+import { assessWorkEligibility } from "./work-eligibility";
 
 const skills = [
   "node.js",
@@ -105,8 +106,6 @@ export class RuleClassifierService {
     if (category === "rejection") score = Math.max(score, 60);
     score = Math.max(0, Math.min(100, score));
 
-    const priority =
-      score >= 80 ? "high" : score >= 60 ? "medium" : score > 0 ? "low" : "ignore";
     const requiresAction =
       this.isActionCategory(category) ||
       category === "linkedin_message" ||
@@ -117,20 +116,34 @@ export class RuleClassifierService {
       score >= 80;
     const companyName = this.extractCompany(rawText);
     const roleTitle = this.extractRole(text);
+    const eligibility = assessWorkEligibility(input);
+    const eligibilityGated =
+      category === "linkedin_job_post" && eligibility.status !== "eligible";
+    if (eligibilityGated) score = Math.min(score, 39);
+    const priority =
+      eligibilityGated
+        ? "ignore"
+        : score >= 80
+          ? "high"
+          : score >= 60
+            ? "medium"
+            : score > 0
+              ? "low"
+              : "ignore";
 
     return {
       isJobRelated: category !== "noise",
-      isRelevantToAhmed: score >= 60,
+      isRelevantToAhmed: score >= 60 && !eligibilityGated,
       importanceScore: score,
       priority,
       category,
       companyName,
       roleTitle,
       location: this.extractLocation(text),
-      requiresAction,
+      requiresAction: eligibilityGated ? false : requiresAction,
       deadline: this.extractDeadline(text),
       summary: this.summary(category, input, score),
-      reason: this.reason({
+      reason: `${this.reason({
         matchedSkills,
         roleMatch,
         remoteMatch,
@@ -139,18 +152,28 @@ export class RuleClassifierService {
         aiMatch,
         wrongStack,
         junior
-      }),
+      })} Work eligibility: ${eligibility.reason}`,
       matchedSkills: matchedSkills.map((skill) => this.display(skill)),
       missingInfo: [
         ...(!companyName ? ["company"] : []),
         ...(!roleTitle ? ["role"] : []),
-        ...(!input.url ? ["source link"] : [])
+        ...(!input.url ? ["source link"] : []),
+        ...(eligibility.status === "uncertain"
+          ? ["Egypt/contractor eligibility"]
+          : [])
       ],
-      suggestedAction: this.action(category, score),
-      suggestedReplyNeeded: requiresAction || score >= 80,
+      suggestedAction: eligibilityGated
+        ? "Skip unless the author confirms Egypt-based contractor eligibility."
+        : this.action(category, score),
+      suggestedReplyNeeded:
+        !eligibilityGated && (requiresAction || score >= 80),
       confidence: category === "generic_update" ? 65 : 88,
-      shouldNotifyNow,
-      shouldIncludeInDigest: !shouldNotifyNow && score >= 60
+      shouldNotifyNow: !eligibilityGated && shouldNotifyNow,
+      shouldIncludeInDigest:
+        !eligibilityGated && !shouldNotifyNow && score >= 60,
+      workEligibility: eligibility.status,
+      eligibilityReason: eligibility.reason,
+      engagementType: eligibility.engagementType
     };
   }
 
@@ -259,7 +282,10 @@ export class RuleClassifierService {
       suggestedReplyNeeded: false,
       confidence: input.confidence,
       shouldNotifyNow: false,
-      shouldIncludeInDigest: false
+      shouldIncludeInDigest: false,
+      workEligibility: "uncertain",
+      eligibilityReason: "Not evaluated because the signal is excluded noise.",
+      engagementType: null
     };
   }
 

@@ -275,11 +275,25 @@ export class OpportunityService {
   ): Classification {
     return this.em.create(Classification, {
       signal,
-      ...result,
+      isJobRelated: result.isJobRelated,
+      isRelevantToAhmed: result.isRelevantToAhmed,
+      importanceScore: result.importanceScore,
+      priority: result.priority,
+      category: result.category,
       companyName: result.companyName ?? undefined,
       roleTitle: result.roleTitle ?? undefined,
       location: result.location ?? undefined,
-      deadline: result.deadline ? new Date(result.deadline) : undefined
+      requiresAction: result.requiresAction,
+      deadline: result.deadline ? new Date(result.deadline) : undefined,
+      summary: result.summary,
+      reason: result.reason,
+      matchedSkills: result.matchedSkills,
+      missingInfo: result.missingInfo,
+      suggestedAction: result.suggestedAction,
+      suggestedReplyNeeded: result.suggestedReplyNeeded,
+      confidence: result.confidence,
+      shouldNotifyNow: result.shouldNotifyNow,
+      shouldIncludeInDigest: result.shouldIncludeInDigest
     });
   }
 

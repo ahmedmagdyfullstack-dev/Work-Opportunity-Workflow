@@ -44,7 +44,7 @@ describe("Opportunity Intelligence API", () => {
       signalType: "linkedin_public_job_post",
       title: "We're hiring a Senior Backend Engineer",
       snippet:
-        "Remote B2B Node.js TypeScript NestJS PostgreSQL product startup role",
+        "Worldwide remote B2B contractor Node.js TypeScript NestJS PostgreSQL product startup role",
       url: "https://www.linkedin.com/posts/acme-role"
     };
     const response = await request(app.getHttpServer())

@@ -20,5 +20,8 @@ export const classificationResultSchema = z.object({
   missing_info: z.array(z.string()),
   suggested_action: z.string(),
   suggested_reply_needed: z.boolean(),
-  confidence: z.number().int().min(0).max(100)
+  confidence: z.number().int().min(0).max(100),
+  work_eligibility: z.enum(["eligible", "ineligible", "uncertain"]),
+  eligibility_reason: z.string(),
+  engagement_type: z.string().nullable()
 });

@@ -15,7 +15,7 @@ The complete pipeline is implemented:
 1. Search, Gmail, Outlook, and manual-import ingestion.
 2. Normalization into `OpportunitySignal`.
 3. Multi-level deduplication and company/role entity matching.
-4. Ahmed-specific scoring with deterministic rules, OpenAI, or OpenRouter.
+4. Ahmed-specific scoring and Egypt work-eligibility review with OpenAI or OpenRouter.
 5. Suggested LinkedIn DMs and email replies.
 6. Immediate WhatsApp decisions, daily digest decisions, and delivery logging.
 7. Opportunity, signal, reply, notification, feedback, settings, and dashboard APIs.
@@ -99,7 +99,22 @@ Keep one replica while the API process owns scheduled search and digest jobs.
 
 ## AI
 
-The default `AI_MODE=rules` is deterministic and testable.
+The default `AI_MODE=rules` is deterministic and testable. Production LinkedIn
+post discovery should use `AI_MODE=openrouter` or `AI_MODE=openai`, because
+Ahmed requires every discovered post to pass an AI eligibility review.
+
+The eligibility gate follows these rules:
+
+- Egypt-based employment, remote, hybrid, and onsite roles are eligible.
+- Roles outside Egypt are eligible only when both the engagement model
+  (independent contractor, B2B, freelance, outstaffing, or project-based) and
+  Egypt-compatible geography (Egypt, MENA, EMEA, worldwide, or global) are
+  explicit.
+- “Remote” alone is unverified and suppressed.
+- Country-only, residency, local work-authorization, W2-only, no-C2C, and
+  hybrid/onsite roles outside Egypt are suppressed.
+- If the AI provider fails, LinkedIn posts are suppressed rather than approved
+  by the deterministic fallback.
 
 For the free OpenRouter model:
 
@@ -116,7 +131,8 @@ OpenRouter uses Chat Completions in JSON mode with a compact output contract,
 reasoning disabled, and strict local Zod validation. The request has a bounded
 timeout because free providers can be slow or intermittently unavailable. If
 the provider is unavailable, rate-limited, times out, or returns invalid
-output, classification safely falls back to deterministic rules.
+output, email classification safely falls back to deterministic rules.
+LinkedIn posts remain suppressed until an AI review succeeds.
 
 For the paid GLM 5.2 model:
 

@@ -12,6 +12,7 @@ export const SIGNAL_TYPES = [
 export type OpportunitySignalType = (typeof SIGNAL_TYPES)[number];
 export type Priority = "high" | "medium" | "low" | "ignore";
 export type Decision = "notify_now" | "daily_digest" | "store_only" | "ignore";
+export type WorkEligibility = "eligible" | "ineligible" | "uncertain";
 export type OpportunityStatus =
   | "new"
   | "interesting"
@@ -77,6 +78,9 @@ export type ClassificationResult = {
   confidence: number;
   shouldNotifyNow: boolean;
   shouldIncludeInDigest: boolean;
+  workEligibility?: WorkEligibility;
+  eligibilityReason?: string;
+  engagementType?: string | null;
 };
 
 export type SearchResult = {

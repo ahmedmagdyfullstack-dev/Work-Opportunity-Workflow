@@ -21,7 +21,31 @@ export const DEFAULT_PROFILE_FACTS = [
   ["preference", "engagement", "Remote", 5],
   ["preference", "engagement", "B2B", 5],
   ["preference", "engagement", "Contractor", 4],
+  ["preference", "engagement", "Independent contractor", 5],
+  ["preference", "engagement", "Freelance", 4],
+  ["preference", "engagement", "Project-based", 4],
+  ["preference", "engagement", "Outstaffing", 3],
   ["location", "base", "Cairo, Egypt", 1],
+  ["eligibility", "local", "Employment or hybrid work in Egypt", 5],
+  [
+    "eligibility",
+    "international",
+    "Outside Egypt only as independent contractor, B2B, freelance, outstaffing, or project-based",
+    5
+  ],
+  [
+    "eligibility",
+    "remote",
+    "Remote alone is not enough; Egypt-compatible geography and contractor terms must be explicit",
+    5
+  ],
+  ["experience", "years", "7+ years", 5],
+  ["experience", "systems", "High-throughput distributed systems", 5],
+  ["experience", "domains", "Fintech, healthtech, enterprise SaaS, ecommerce", 3],
+  ["skill", "architecture", "Microservices, DDD, CQRS, event-driven systems", 4],
+  ["skill", "messaging", "BullMQ, RabbitMQ, Kafka, AWS SQS, GCP Pub/Sub", 4],
+  ["skill", "devops", "Kubernetes, Terraform, Helm, GitOps, CI/CD", 4],
+  ["skill", "security", "OAuth2, JWT, Auth0, Okta, SCIM, SAST, DAST", 3],
   ["preference", "geography", "EMEA", 3],
   ["preference", "geography", "UAE", 2],
   ["preference", "geography", "Saudi", 2],
@@ -33,13 +57,19 @@ export class CvProfileService {
   constructor(private readonly em: EntityManager) {}
 
   async ensureDefaults(): Promise<void> {
-    const count = await this.em.count(ProfileFact, {});
-    if (count > 0) return;
-
     for (const [category, key, value, weight] of DEFAULT_PROFILE_FACTS) {
-      this.em.persist(
-        this.em.create(ProfileFact, { category, key, value, weight })
-      );
+      const existing = await this.em.findOne(ProfileFact, {
+        category,
+        key,
+        value
+      });
+      if (!existing) {
+        this.em.persist(
+          this.em.create(ProfileFact, { category, key, value, weight })
+        );
+      } else if (existing.weight !== weight) {
+        existing.weight = weight;
+      }
     }
     await this.em.flush();
   }
