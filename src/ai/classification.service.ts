@@ -155,7 +155,7 @@ export class ClassificationService {
       {
         role: "system" as const,
         content:
-          "Classify job-search signals for Ahmed, an Egyptian based in Cairo. A LinkedIn job post is eligible only when it explicitly accepts Egypt/local work, or it explicitly combines independent-contractor/B2B/freelance/project-based engagement with worldwide, global, EMEA, MENA, or Egypt-inclusive geography. “Remote” alone is uncertain and must not be treated as eligible. US-only, UK-only, Canada-only, EU/Europe-only, country residency, local work authorization, W2-only, no-C2C, or hybrid/onsite outside Egypt are ineligible. Include normal LinkedIn job posts, LinkedIn message notification emails, and important recruiter/application emails. Exclude LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions. Return the requested structured JSON only."
+          "Classify job-search signals for Ahmed, an Egyptian based in Cairo. A LinkedIn job post is eligible when it explicitly accepts Egypt/local work; or explicitly combines independent-contractor/B2B/freelance/project-based engagement with worldwide, global, EMEA, MENA, or Egypt-inclusive geography; or explicitly combines remote work with contractor engagement and contains no conflicting country restriction. “Remote” alone is uncertain and must not be treated as eligible. US-only, UK-only, Canada-only, EU/Europe-only, country residency, local work authorization, W2-only, no-C2C, or hybrid/onsite outside Egypt are ineligible. Include normal LinkedIn job posts, LinkedIn message notification emails, and important recruiter/application emails. Exclude LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions. Return the requested structured JSON only."
       },
       {
         role: "user" as const,
@@ -196,7 +196,7 @@ eligibility_reason:string
 engagement_type:string|null
 
 Ahmed is Egyptian and based in Cairo. For LinkedIn job posts:
-- eligible: explicitly accepts Egypt/local work; or explicitly offers independent contractor, B2B, freelance, outstaffing, or project-based engagement AND explicitly allows worldwide, global, EMEA, MENA, or Egypt.
+- eligible: explicitly accepts Egypt/local work; explicitly offers independent contractor, B2B, freelance, outstaffing, or project-based engagement AND explicitly allows worldwide, global, EMEA, MENA, or Egypt; or explicitly combines remote work with contractor engagement and has no conflicting country restriction.
 - uncertain: says only remote; geography may include Egypt but contractor engagement is not explicit; or contractor terms exist but Egypt-compatible geography is not explicit.
 - ineligible: US-only, UK-only, Canada-only, EU/Europe-only, country residency, local work authorization, W2-only, no-C2C, or hybrid/onsite outside Egypt.
 Never mark “remote” alone as eligible. Uncertain and ineligible posts must not notify or enter the digest.

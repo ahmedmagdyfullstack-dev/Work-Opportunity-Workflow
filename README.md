@@ -107,10 +107,10 @@ Ahmed requires every discovered post to pass an AI eligibility review.
 The eligibility gate follows these rules:
 
 - Egypt-based employment, remote, hybrid, and onsite roles are eligible.
-- Roles outside Egypt are eligible only when both the engagement model
-  (independent contractor, B2B, freelance, outstaffing, or project-based) and
-  Egypt-compatible geography (Egypt, MENA, EMEA, worldwide, or global) are
-  explicit.
+- Roles outside Egypt are eligible when contractor/B2B/freelance engagement
+  is explicit and the post either names Egypt-compatible geography or clearly
+  says the contractor role itself is remote without a conflicting country
+  restriction.
 - “Remote” alone is unverified and suppressed.
 - Country-only, residency, local work-authorization, W2-only, no-C2C, and
   hybrid/onsite roles outside Egypt are suppressed.

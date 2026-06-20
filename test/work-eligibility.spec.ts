@@ -12,6 +12,8 @@ describe("Egypt work eligibility", () => {
   it.each([
     "Remote worldwide — independent contractor",
     "Global remote B2B contract",
+    "100% Remote. Job Type: Contractor",
+    "Fully remote independent contractor role",
     "Remote EMEA freelance project",
     "Europe time zone, international contractor",
     "Hybrid in Cairo, Egypt"

@@ -67,6 +67,8 @@ const restrictedGeographyPatterns = [
 ];
 
 const hybridOrOnsitePattern = /\b(hybrid|on[- ]?site|in[- ]office)\b/i;
+const explicitRemotePattern =
+  /\b(?:100%\s+remote|fully remote|remote opportunity|remote role|work remotely)\b/i;
 
 export function assessWorkEligibility(
   input: NormalizedSignalInput
@@ -122,6 +124,15 @@ export function assessWorkEligibility(
       status: "eligible",
       reason:
         "The post explicitly supports contractor/B2B/freelance engagement and a geography that includes Egypt.",
+      engagementType: contractor.source
+    };
+  }
+
+  if (contractor && explicitRemotePattern.test(text)) {
+    return {
+      status: "eligible",
+      reason:
+        "The post explicitly offers remote work and contractor/B2B/freelance engagement without a conflicting country restriction.",
       engagementType: contractor.source
     };
   }
