@@ -3,8 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BraveSearchProvider,
   isLikelyOpenPost,
-  parseResultDate
+  parseResultDate,
+  SerperSearchProvider
 } from "../src/search/providers";
+import { QueryBuilderService } from "../src/search/query-builder.service";
 
 describe("LinkedIn search freshness", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -75,5 +77,51 @@ describe("LinkedIn search freshness", () => {
         provider: "brave"
       })
     ).toBe(true);
+  });
+
+  it("uses Serper Google search with a four-day date restriction", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          organic: [
+            {
+              title: "Hiring Senior Backend Engineer",
+              link: "https://www.linkedin.com/posts/serper-example",
+              snippet: "Remote Node.js role",
+              date: "1 day ago"
+            }
+          ]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    const provider = new SerperSearchProvider(
+      new ConfigService({ SERPER_API_KEY: "serper-test-key" })
+    );
+
+    const results = await provider.search("linkedin role", {
+      limit: 10,
+      maxAgeDays: 4
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://google.serper.dev/search");
+    expect(options?.headers).toMatchObject({
+      "X-API-KEY": "serper-test-key"
+    });
+    expect(JSON.parse(String(options?.body))).toMatchObject({
+      q: "linkedin role",
+      num: 10,
+      tbs: "qdr:d4"
+    });
+    expect(results[0]).toMatchObject({
+      provider: "serper",
+      url: "https://www.linkedin.com/posts/serper-example"
+    });
+  });
+
+  it("uses eight consolidated queries per run", () => {
+    expect(new QueryBuilderService().build()).toHaveLength(8);
   });
 });

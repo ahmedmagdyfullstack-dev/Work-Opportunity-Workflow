@@ -135,7 +135,18 @@ SEARCH_PROVIDER=brave
 BRAVE_SEARCH_API_KEY=...
 ```
 
-Also supported: `serpapi`, `google_custom_search`, and `manual`. The app only stores indexed title, snippet, and URL. It never fetches the LinkedIn post body.
+For Google-backed discovery through Serper.dev:
+
+```env
+SEARCH_PROVIDER=serper
+SERPER_API_KEY=...
+SEARCH_CRON=0 2,8,14,20 * * *
+```
+
+The default query set is eight consolidated queries. Running four times daily
+uses 32 Serper credits per day. Also supported: `brave`, `serpapi`,
+`google_custom_search`, and `manual`. The app only stores indexed title,
+snippet, and URL. It never fetches the LinkedIn post body.
 
 Trigger a run:
 

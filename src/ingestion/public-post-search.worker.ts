@@ -39,7 +39,7 @@ export class PublicPostSearchWorker implements OnModuleInit {
     );
   }
 
-  @Cron(process.env.SEARCH_CRON || "0 * * * *")
+  @Cron(process.env.SEARCH_CRON || "0 2,8,14,20 * * *")
   async scheduled(): Promise<void> {
     await this.run();
   }

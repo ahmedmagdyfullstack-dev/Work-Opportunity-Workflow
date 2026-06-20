@@ -21,9 +21,10 @@ export const envSchema = z.object({
   AI_MODEL: z.string().default("openai/gpt-oss-20b:free"),
   AI_MODE: z.enum(["rules", "openai", "openrouter"]).default("rules"),
   SEARCH_PROVIDER: z
-    .enum(["manual", "brave", "serpapi", "google_custom_search"])
+    .enum(["manual", "brave", "serper", "serpapi", "google_custom_search"])
     .default("manual"),
   BRAVE_SEARCH_API_KEY: z.string().optional(),
+  SERPER_API_KEY: z.string().optional(),
   SERPAPI_API_KEY: z.string().optional(),
   GOOGLE_CUSTOM_SEARCH_API_KEY: z.string().optional(),
   GOOGLE_CUSTOM_SEARCH_ENGINE_ID: z.string().optional(),
@@ -47,7 +48,7 @@ export const envSchema = z.object({
   DIGEST_THRESHOLD: z.coerce.number().int().min(0).max(100).default(60),
   LINKEDIN_POST_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(30).default(4),
   DIGEST_CRON: z.string().default("0 18 * * *"),
-  SEARCH_CRON: z.string().default("0 * * * *")
+  SEARCH_CRON: z.string().default("0 2,8,14,20 * * *")
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

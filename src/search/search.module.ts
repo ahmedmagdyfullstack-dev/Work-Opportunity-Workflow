@@ -6,6 +6,7 @@ import {
   BraveSearchProvider,
   GoogleCustomSearchProvider,
   ManualSearchProvider,
+  SerperSearchProvider,
   SerpApiProvider
 } from "./providers";
 import { SearchCacheService } from "./search-cache.service";
@@ -16,6 +17,7 @@ import { SearchCacheService } from "./search-cache.service";
     SearchCacheService,
     ManualSearchProvider,
     BraveSearchProvider,
+    SerperSearchProvider,
     SerpApiProvider,
     GoogleCustomSearchProvider,
     {
@@ -24,6 +26,7 @@ import { SearchCacheService } from "./search-cache.service";
         ConfigService,
         ManualSearchProvider,
         BraveSearchProvider,
+        SerperSearchProvider,
         SerpApiProvider,
         GoogleCustomSearchProvider
       ],
@@ -31,10 +34,17 @@ import { SearchCacheService } from "./search-cache.service";
         config: ConfigService,
         manual: ManualSearchProvider,
         brave: BraveSearchProvider,
+        serper: SerperSearchProvider,
         serp: SerpApiProvider,
         google: GoogleCustomSearchProvider
       ) => {
-        const providers = { manual, brave, serpapi: serp, google_custom_search: google };
+        const providers = {
+          manual,
+          brave,
+          serper,
+          serpapi: serp,
+          google_custom_search: google
+        };
         return providers[
           config.get<keyof typeof providers>("SEARCH_PROVIDER", "manual")
         ];

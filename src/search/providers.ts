@@ -62,6 +62,57 @@ export class BraveSearchProvider implements PublicSearchProvider {
 }
 
 @Injectable()
+export class SerperSearchProvider implements PublicSearchProvider {
+  readonly name = "serper";
+  constructor(private readonly config: ConfigService) {}
+
+  async search(
+    query: string,
+    options: SearchOptions = {}
+  ): Promise<SearchResult[]> {
+    const response = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": this.config.getOrThrow<string>("SERPER_API_KEY")
+      },
+      body: JSON.stringify({
+        q: query,
+        gl: "us",
+        hl: "en",
+        num: options.limit ?? 10,
+        ...(options.maxAgeDays
+          ? { tbs: `qdr:d${options.maxAgeDays}` }
+          : {})
+      }),
+      signal: AbortSignal.timeout(30_000)
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(
+        `Serper search failed: ${response.status} ${body.slice(0, 300)}`
+      );
+    }
+    const data = (await response.json()) as {
+      organic?: Array<{
+        title: string;
+        link: string;
+        snippet?: string;
+        date?: string;
+      }>;
+    };
+    return (data.organic ?? []).map((item) => ({
+      title: item.title,
+      snippet: item.snippet ?? "",
+      url: item.link,
+      discoveredAt: new Date(),
+      publishedAt: parseResultDate(item.date),
+      provider: this.name
+    }));
+  }
+}
+
+@Injectable()
 export class SerpApiProvider implements PublicSearchProvider {
   readonly name = "serpapi";
   constructor(private readonly config: ConfigService) {}
