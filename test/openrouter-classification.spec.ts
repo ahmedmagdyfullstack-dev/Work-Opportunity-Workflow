@@ -104,8 +104,10 @@ describe("OpenRouter classification", () => {
     const body = JSON.parse(String(options?.body));
     expect(body.model).toBe("openai/gpt-oss-20b:free");
     expect(body.response_format.type).toBe("json_object");
-    expect(body.messages[0].content).toContain('"is_job_related"');
-    expect(body.messages[0].content).toContain('"additionalProperties":false');
+    expect(body.reasoning.effort).toBe("none");
+    expect(body.max_tokens).toBe(1_200);
+    expect(body.messages[0].content).toContain("is_job_related:boolean");
+    expect(body.messages[0].content).toContain("importance_score: integer 0-100");
   });
 
   it("falls back to rules when OpenRouter fails", async () => {
@@ -158,5 +160,34 @@ describe("OpenRouter classification", () => {
     expect(result.suggestedReplyNeeded).toBe(true);
     expect(result.shouldNotifyNow).toBe(true);
     expect(result.priority).toBe("high");
+  });
+
+  it("recovers JSON wrapped in markdown fences", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          provider: "OpenInference",
+          choices: [
+            {
+              finish_reason: "stop",
+              message: {
+                content: `\`\`\`json\n${JSON.stringify(aiPayload)}\n\`\`\``
+              }
+            }
+          ]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    const { classifier, rules } = service();
+
+    const result = await classifier.classify({
+      source: "email",
+      signalType: "important_email",
+      subject: "Backend opportunity"
+    });
+
+    expect(result.importanceScore).toBe(92);
+    expect(rules.classify).not.toHaveBeenCalled();
   });
 });

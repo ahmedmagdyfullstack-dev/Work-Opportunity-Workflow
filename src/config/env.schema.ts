@@ -18,6 +18,7 @@ export const envSchema = z.object({
     .string()
     .url()
     .default("https://openrouter.ai/api/v1"),
+  OPENROUTER_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(120_000).default(25_000),
   AI_MODEL: z.string().default("openai/gpt-oss-20b:free"),
   AI_MODE: z.enum(["rules", "openai", "openrouter"]).default("rules"),
   SEARCH_PROVIDER: z

@@ -42,9 +42,8 @@ export class ClassificationService {
         senderRules
       );
     } catch (error) {
-      this.logger.error(
-        `${mode} classification failed; using deterministic rules`,
-        error
+      this.logger.warn(
+        `${mode} classification unavailable; using deterministic rules: ${this.errorMessage(error)}`
       );
       return this.applySenderRules(this.rules.classify(input), senderRules);
     }
@@ -83,10 +82,6 @@ export class ClassificationService {
       throw new Error("OPENROUTER_API_KEY is required for AI_MODE=openrouter");
     }
 
-    const schema = zodTextFormat(
-      classificationResultSchema,
-      "job_signal_classification"
-    ).schema;
     const response = await fetch(
       `${this.config.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")}/chat/completions`,
       {
@@ -102,17 +97,28 @@ export class ClassificationService {
         },
         body: JSON.stringify({
           model: this.config.get("AI_MODEL", "openai/gpt-oss-20b:free"),
-          messages: await this.messages(input, schema),
+          messages: await this.openRouterMessages(input),
           response_format: { type: "json_object" },
-          reasoning: { effort: "low", exclude: true },
+          reasoning: { effort: "none", exclude: true },
           temperature: 0,
-          max_tokens: 2_000
+          seed: 1,
+          max_tokens: 1_200,
+          provider: {
+            require_parameters: true,
+            allow_fallbacks: true
+          }
         }),
-        signal: AbortSignal.timeout(60_000)
+        signal: AbortSignal.timeout(
+          this.config.get<number>("OPENROUTER_TIMEOUT_MS", 25_000)
+        )
       }
     );
     const payload = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string | null } }>;
+      provider?: string;
+      choices?: Array<{
+        finish_reason?: string | null;
+        message?: { content?: string | null };
+      }>;
       error?: { message?: string };
     };
     if (!response.ok) {
@@ -123,29 +129,88 @@ export class ClassificationService {
       );
     }
     const content = payload.choices?.[0]?.message?.content;
-    if (!content) throw new Error("OpenRouter returned no classification");
-    return classificationResultSchema.parse(JSON.parse(content));
+    if (!content) {
+      throw new Error(
+        `empty response from ${payload.provider ?? "provider"} (finish: ${
+          payload.choices?.[0]?.finish_reason ?? "unknown"
+        })`
+      );
+    }
+    return classificationResultSchema.parse(this.parseJsonObject(content));
   }
 
-  private async messages(
-    input: NormalizedSignalInput,
-    jsonSchema?: Record<string, unknown>
-  ) {
+  private async messages(input: NormalizedSignalInput) {
     const profile = await this.profile.promptSummary();
-    const schemaInstruction = jsonSchema
-      ? ` Return only one JSON object matching this exact schema, with every required key present and no markdown:\n${JSON.stringify(jsonSchema)}`
-      : " Return the requested structured JSON only.";
     return [
       {
         role: "system" as const,
         content:
-          `Classify job-search signals for Ahmed. LinkedIn normal job posts, LinkedIn message notification emails, and important recruiter/application emails are included. LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions are excluded. Prefer remote/B2B senior backend, full-stack, product, and AI roles.${schemaInstruction}`
+          "Classify job-search signals for Ahmed. LinkedIn normal job posts, LinkedIn message notification emails, and important recruiter/application emails are included. LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions are excluded. Prefer remote/B2B senior backend, full-stack, product, and AI roles. Return the requested structured JSON only."
       },
       {
         role: "user" as const,
         content: `Profile:\n${profile}\n\nSignal:\n${JSON.stringify(input)}`
       }
     ];
+  }
+
+  private async openRouterMessages(input: NormalizedSignalInput) {
+    const profile = await this.profile.promptSummary();
+    return [
+      {
+        role: "system" as const,
+        content:
+          `You classify job-search signals for Ahmed. Return exactly one valid JSON object, no markdown and no commentary.
+Required keys and types:
+is_job_related:boolean
+is_relevant_to_ahmed:boolean
+category: one of linkedin_job_post, linkedin_message, recruiter_email, interview_invite, assessment_invite, offer, rejection, calendar_update, generic_update, noise
+importance_score: integer 0-100
+priority: one of high, medium, low, ignore
+company_name:string|null
+role_title:string|null
+location:string|null
+requires_action:boolean
+deadline:ISO datetime string|null
+should_notify_now:boolean
+should_include_in_digest:boolean
+summary:string
+reason:string
+matched_skills:string[]
+missing_info:string[]
+suggested_action:string
+suggested_reply_needed:boolean
+confidence:integer 0-100
+
+Include normal LinkedIn job posts, LinkedIn message notifications, and important recruiter/application emails. Exclude LinkedIn job-alert emails, newsletters, marketing, profile views, and connection suggestions. Prefer remote/B2B senior backend, full-stack, product, and AI roles.`
+      },
+      {
+        role: "user" as const,
+        content: `Profile:\n${profile}\n\nSignal:\n${JSON.stringify(input)}`
+      }
+    ];
+  }
+
+  private parseJsonObject(content: string): unknown {
+    const trimmed = content
+      .trim()
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/, "");
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      const start = trimmed.indexOf("{");
+      const end = trimmed.lastIndexOf("}");
+      if (start >= 0 && end > start) {
+        return JSON.parse(trimmed.slice(start, end + 1));
+      }
+      throw new Error("OpenRouter returned malformed JSON");
+    }
+  }
+
+  private errorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
   }
 
   private mapResult(

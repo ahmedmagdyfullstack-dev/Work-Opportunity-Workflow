@@ -107,13 +107,14 @@ For the free OpenRouter model:
 AI_MODE=openrouter
 OPENROUTER_API_KEY=...
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_TIMEOUT_MS=25000
 AI_MODEL=openai/gpt-oss-20b:free
 ```
 
-OpenRouter uses Chat Completions in JSON mode with the full schema embedded in
-the system prompt, reasoning set to low, and strict local Zod validation. This
-works across free-model providers that do not consistently enforce native JSON
-Schema. If the provider is unavailable, rate-limited, or returns invalid
+OpenRouter uses Chat Completions in JSON mode with a compact output contract,
+reasoning disabled, and strict local Zod validation. The request has a bounded
+timeout because free providers can be slow or intermittently unavailable. If
+the provider is unavailable, rate-limited, times out, or returns invalid
 output, classification safely falls back to deterministic rules.
 
 Direct OpenAI is still supported:
