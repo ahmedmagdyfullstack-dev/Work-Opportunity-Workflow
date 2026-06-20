@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Job, Queue, Worker } from "bullmq";
+import { Job, Queue, QueueEvents, Worker } from "bullmq";
 
 export const QUEUE_NAMES = [
   "search-discovery",
@@ -18,6 +18,7 @@ export const QUEUE_NAMES = [
 export class QueueService implements OnModuleDestroy {
   private readonly logger = new Logger(QueueService.name);
   private readonly queues = new Map<string, Queue>();
+  private readonly queueEvents = new Map<string, QueueEvents>();
   private readonly workers = new Map<string, Worker>();
   private readonly handlers = new Map<string, (data: any) => Promise<unknown>>();
 
@@ -58,26 +59,55 @@ export class QueueService implements OnModuleDestroy {
     }
     let queue = this.queues.get(name);
     if (!queue) {
-      queue = new Queue(name, {
-        connection: this.connection(),
-        defaultJobOptions: {
-          attempts: 5,
-          backoff: { type: "exponential", delay: 1_000 },
-          removeOnComplete: 1_000,
-          removeOnFail: 5_000
-        }
-      });
+      queue = this.createQueue(name);
       this.queues.set(name, queue);
     }
     const job = await queue.add(name, data);
     return { queued: true, jobId: job.id };
   }
 
+  async enqueueAndWait(
+    name: (typeof QUEUE_NAMES)[number],
+    data: unknown,
+    timeoutMs = 120_000
+  ): Promise<unknown> {
+    if (this.config.get("QUEUE_MODE", "inline") === "inline") {
+      return this.enqueue(name, data);
+    }
+
+    let queue = this.queues.get(name);
+    if (!queue) {
+      queue = this.createQueue(name);
+      this.queues.set(name, queue);
+    }
+    let events = this.queueEvents.get(name);
+    if (!events) {
+      events = new QueueEvents(name, { connection: this.connection() });
+      await events.waitUntilReady();
+      this.queueEvents.set(name, events);
+    }
+    const job = await queue.add(name, data);
+    return job.waitUntilFinished(events, timeoutMs);
+  }
+
   async onModuleDestroy(): Promise<void> {
     await Promise.all([
       ...[...this.queues.values()].map((queue) => queue.close()),
+      ...[...this.queueEvents.values()].map((events) => events.close()),
       ...[...this.workers.values()].map((worker) => worker.close())
     ]);
+  }
+
+  private createQueue(name: string): Queue {
+    return new Queue(name, {
+      connection: this.connection(),
+      defaultJobOptions: {
+        attempts: 5,
+        backoff: { type: "exponential", delay: 1_000 },
+        removeOnComplete: 1_000,
+        removeOnFail: 5_000
+      }
+    });
   }
 
   private connection() {

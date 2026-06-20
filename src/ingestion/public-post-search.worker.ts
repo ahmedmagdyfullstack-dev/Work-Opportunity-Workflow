@@ -56,6 +56,7 @@ export class PublicPostSearchWorker implements OnModuleInit {
     digest: number;
     stored: number;
     notificationFailed: number;
+    queryFailed: number;
   }> {
     const queries = this.queries.build();
     let found = 0;
@@ -68,12 +69,17 @@ export class PublicPostSearchWorker implements OnModuleInit {
     let digest = 0;
     let stored = 0;
     let notificationFailed = 0;
+    let queryFailed = 0;
     for (const query of queries) {
       try {
-        const result = (await this.queue.enqueue("search-discovery", {
-          query,
-          provider: this.provider.name
-        })) as
+        const result = (await this.queue.enqueueAndWait(
+          "search-discovery",
+          {
+            query,
+            provider: this.provider.name
+          },
+          120_000
+        )) as
           | {
               found?: number;
               open?: number;
@@ -98,6 +104,7 @@ export class PublicPostSearchWorker implements OnModuleInit {
         stored += result?.stored ?? 0;
         notificationFailed += result?.notificationFailed ?? 0;
       } catch (error) {
+        queryFailed += 1;
         this.logger.error(`Search query failed: ${query}`, error);
       }
     }
@@ -112,7 +119,8 @@ export class PublicPostSearchWorker implements OnModuleInit {
       notified,
       digest,
       stored,
-      notificationFailed
+      notificationFailed,
+      queryFailed
     };
   }
 
@@ -144,7 +152,7 @@ export class PublicPostSearchWorker implements OnModuleInit {
         freshness,
         maxAgeDays
       });
-      this.cache.set(cacheKey, results);
+      if (results.length > 0) this.cache.set(cacheKey, results);
     }
     const cutoff = Date.now() - maxAgeDays * 86_400_000;
     const linkedInResults = results.filter((result) =>
@@ -164,6 +172,9 @@ export class PublicPostSearchWorker implements OnModuleInit {
           (right.publishedAt?.getTime() ?? right.discoveredAt.getTime()) -
           (left.publishedAt?.getTime() ?? left.discoveredAt.getTime())
       );
+    this.logger.log(
+      `Search query completed provider=${this.provider.name} results=${results.length} linkedin=${linkedInResults.length} open=${openResults.length} stale=${stale} closed=${closed}`
+    );
     let ingested = 0;
     let duplicates = 0;
     let notified = 0;

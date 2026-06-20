@@ -196,8 +196,9 @@ was filled, closed, or is no longer accepting applications are excluded. Since
 the app does not fetch LinkedIn pages, open-role detection is necessarily based
 on search-index metadata and snippets.
 
-The manual search response reports `notified`, `digest`, `stored`, and
-`notificationFailed` counts. WhatsApp remains importance-gated by
+The manual search response waits for BullMQ discovery jobs and reports
+`notified`, `digest`, `stored`, `notificationFailed`, and `queryFailed`
+counts. Empty provider responses are not cached. WhatsApp remains importance-gated by
 `NOTIFICATION_THRESHOLD`; discovering a post does not automatically mean it
 will trigger an immediate alert.
 
